@@ -3,35 +3,15 @@
 <head>
 <meta charset="UTF-8">
 <title>IP Tracker</title>
-
 <style>
-body{
-    font-family:Arial;
-    background:#111827;
-    color:white;
-    text-align:center;
-    padding:30px;
-}
-.card{
-    max-width:600px;
-    margin:auto;
-    background:#1f2937;
-    padding:20px;
-    border-radius:12px;
-}
-h1{
-    color:#00e5ff;
-}
-p{
-    font-size:18px;
-}
+body{font-family:Arial;background:#111827;color:white;text-align:center;padding:30px}
+.card{max-width:600px;margin:auto;background:#1f2937;padding:20px;border-radius:12px}
+h1{color:#00e5ff}p{font-size:18px}
 </style>
 </head>
 <body>
-
 <div class="card">
 <h1>IP Address Tracker</h1>
-
 <p><b>IP:</b> <span id="ip"></span></p>
 <p><b>City:</b> <span id="city"></span></p>
 <p><b>Region:</b> <span id="region"></span></p>
@@ -39,56 +19,26 @@ p{
 <p><b>Latitude:</b> <span id="lat"></span></p>
 <p><b>Longitude:</b> <span id="lon"></span></p>
 <p><b>Distance from Tower:</b> <span id="distance"></span> km</p>
-
 </div>
-
 <script>
-
-const towerLat = 26.8467;   // Example tower location
-const towerLon = 80.9462;
-
+const towerLat=26.8467,towerLon=80.9462;
 fetch("https://ipapi.co/json/")
-.then(res=>res.json())
+.then(r=>r.json())
 .then(data=>{
-
-document.getElementById("ip").innerHTML=data.ip;
-document.getElementById("city").innerHTML=data.city;
-document.getElementById("region").innerHTML=data.region;
-document.getElementById("country").innerHTML=data.country;
-document.getElementById("lat").innerHTML=data.latitude;
-document.getElementById("lon").innerHTML=data.longitude;
-
-const d = distance(
-towerLat,
-towerLon,
-data.latitude,
-data.longitude
-);
-
-document.getElementById("distance").innerHTML=d.toFixed(2);
-
-});
-
-function distance(lat1, lon1, lat2, lon2){
-
-const R=6371;
-
-const dLat=(lat2-lat1)*Math.PI/180;
-const dLon=(lon2-lon1)*Math.PI/180;
-
-const a=
-Math.sin(dLat/2)**2+
-Math.cos(lat1*Math.PI/180)*
-Math.cos(lat2*Math.PI/180)*
-Math.sin(dLon/2)**2;
-
-const c=2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
-
-return R*c;
-
+ip.textContent=data.ip;
+city.textContent=data.city;
+region.textContent=data.region;
+country.textContent=data.country_name||data.country;
+lat.textContent=data.latitude;
+lon.textContent=data.longitude;
+distance.textContent=haversine(towerLat,towerLon,data.latitude,data.longitude).toFixed(2);
+})
+.catch(e=>alert("Failed to fetch location: "+e));
+function haversine(lat1,lon1,lat2,lon2){
+const R=6371,dLat=(lat2-lat1)*Math.PI/180,dLon=(lon2-lon1)*Math.PI/180;
+const a=Math.sin(dLat/2)**2+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
+return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
 }
-
 </script>
-
 </body>
 </html>
