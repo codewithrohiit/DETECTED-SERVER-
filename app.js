@@ -583,22 +583,45 @@ document.addEventListener('DOMContentLoaded', () => {
     fetchIpDetails('');
   });
 
+  // Robust Copy Helper with Fallback
+  function copyTextToClipboard(text, successMsg) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text)
+        .then(() => showCopyToast(successMsg))
+        .catch(() => fallbackCopyText(text, successMsg));
+    } else {
+      fallbackCopyText(text, successMsg);
+    }
+  }
+
+  function fallbackCopyText(text, successMsg) {
+    const textArea = document.createElement('textarea');
+    textArea.value = text;
+    textArea.style.position = 'fixed';
+    textArea.style.left = '-9999px';
+    document.body.appendChild(textArea);
+    textArea.select();
+    try {
+      document.execCommand('copy');
+      showCopyToast(successMsg);
+    } catch (err) {
+      showCopyToast('Copy failed. Please copy manually.');
+    }
+    document.body.removeChild(textArea);
+  }
+
   // Copy Coordinates Handler
   copyCoordsBtn.addEventListener('click', () => {
     if (currentIpData) {
       const text = `${currentIpData.latitude}, ${currentIpData.longitude}`;
-      navigator.clipboard.writeText(text).then(() => {
-        showCopyToast('Coordinates copied!');
-      });
+      copyTextToClipboard(text, 'Coordinates copied!');
     }
   });
 
   // Copy JSON Handler
   copyAllJsonBtn.addEventListener('click', () => {
     if (currentIpData) {
-      navigator.clipboard.writeText(JSON.stringify(currentIpData.raw, null, 2)).then(() => {
-        showCopyToast('Full JSON copied to clipboard!');
-      });
+      copyTextToClipboard(JSON.stringify(currentIpData.raw, null, 2), 'Full JSON copied to clipboard!');
     }
   });
 
@@ -616,9 +639,7 @@ Timezone: ${currentIpData.timezoneOffset} (${currentIpData.timezoneId})
 Proxy/VPN: ${currentIpData.security.proxy || currentIpData.security.vpn ? 'Yes' : 'No'}
 =======================
 `.trim();
-    navigator.clipboard.writeText(report).then(() => {
-      showCopyToast('Text summary report copied!');
-    });
+    copyTextToClipboard(report, 'Text summary report copied!');
   });
 
   // Download JSON Export
