@@ -1,44 +1,384 @@
 <!DOCTYPE html>
-<html>
+<html lang="en" data-theme="dark">
 <head>
-<meta charset="UTF-8">
-<title>IP Tracker</title>
-<style>
-body{font-family:Arial;background:#111827;color:white;text-align:center;padding:30px}
-.card{max-width:600px;margin:auto;background:#1f2937;padding:20px;border-radius:12px}
-h1{color:#00e5ff}p{font-size:18px}
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>IP Pulse — Advanced IP Geolocation & Intelligence Tracker</title>
+  <meta name="description" content="Instant IPv4/IPv6 address lookup, precise geolocation, security risk assessment, ISP & ASN details, timezone, and interactive world map.">
+  
+  <!-- Favicon -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌐</text></svg>">
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous">
+
+  <!-- Leaflet Map CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="anonymous" />
+
+  <!-- App Stylesheet -->
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<div class="card">
-<h1>IP Address Tracker</h1>
-<p><b>IP:</b> <span id="ip"></span></p>
-<p><b>City:</b> <span id="city"></span></p>
-<p><b>Region:</b> <span id="region"></span></p>
-<p><b>Country:</b> <span id="country"></span></p>
-<p><b>Latitude:</b> <span id="lat"></span></p>
-<p><b>Longitude:</b> <span id="lon"></span></p>
-<p><b>Distance from Tower:</b> <span id="distance"></span> km</p>
-</div>
-<script>
-const towerLat=26.8467,towerLon=80.9462;
-fetch("https://ipapi.co/json/")
-.then(r=>r.json())
-.then(data=>{
-ip.textContent=data.ip;
-city.textContent=data.city;
-region.textContent=data.region;
-country.textContent=data.country_name||data.country;
-lat.textContent=data.latitude;
-lon.textContent=data.longitude;
-distance.textContent=haversine(towerLat,towerLon,data.latitude,data.longitude).toFixed(2);
-})
-.catch(e=>alert("Failed to fetch location: "+e));
-function haversine(lat1,lon1,lat2,lon2){
-const R=6371,dLat=(lat2-lat1)*Math.PI/180,dLon=(lon2-lon1)*Math.PI/180;
-const a=Math.sin(dLat/2)**2+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
-return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
-}
-</script>
+
+  <!-- Ambient Glow Background Effects -->
+  <div class="ambient-glow glow-1"></div>
+  <div class="ambient-glow glow-2"></div>
+  <div class="grid-overlay"></div>
+
+  <!-- Navigation / Header -->
+  <header class="navbar">
+    <div class="nav-container">
+      <div class="logo">
+        <div class="logo-icon">
+          <i class="fa-solid fa-earth-americas"></i>
+          <span class="pulse-ring"></span>
+        </div>
+        <div class="logo-text">
+          <span class="brand-name">IP<span class="highlight">Pulse</span></span>
+          <span class="brand-sub">Intelligence Suite</span>
+        </div>
+      </div>
+
+      <div class="nav-actions">
+        <button id="myIpBtn" class="btn btn-outline" title="Lookup your current IP address">
+          <i class="fa-solid fa-crosshairs"></i>
+          <span>My IP</span>
+        </button>
+
+        <button id="themeToggle" class="btn btn-icon" title="Toggle Theme (Dark / Light)" aria-label="Toggle Theme">
+          <i class="fa-solid fa-moon"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Workspace -->
+  <main class="app-container">
+
+    <!-- Search Hero Section -->
+    <section class="hero-section">
+      <div class="hero-content">
+        <h1 class="hero-title">
+          Lookup Any <span class="gradient-text">IP Address</span> or Domain
+        </h1>
+        <p class="hero-subtitle">
+          Real-time geolocation, Autonomous System (ASN) routes, proxy/VPN security score, timezone metrics, and interactive spatial mapping.
+        </p>
+
+        <!-- Search Form -->
+        <form id="searchForm" class="search-box" autocomplete="off">
+          <div class="search-input-wrapper">
+            <i class="fa-solid fa-magnifying-glass search-icon"></i>
+            <input 
+              type="text" 
+              id="ipInput" 
+              placeholder="Enter IP (e.g. 8.8.8.8, 2001:4860:4860::8888) or domain (e.g. cloudflare.com)..." 
+              aria-label="IP Address or Domain Name Search"
+              spellcheck="false"
+            />
+            <button type="button" id="clearInputBtn" class="clear-btn" title="Clear input" style="display: none;">
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+          </div>
+          <button type="submit" id="searchSubmitBtn" class="btn btn-primary">
+            <span>Track IP</span>
+            <i class="fa-solid fa-arrow-right"></i>
+          </button>
+        </form>
+
+        <!-- Quick Sample / Preset Chips & Recent History -->
+        <div class="search-presets">
+          <span class="preset-label">Quick Samples:</span>
+          <button class="chip sample-chip" data-ip="8.8.8.8">Google DNS</button>
+          <button class="chip sample-chip" data-ip="1.1.1.1">Cloudflare</button>
+          <button class="chip sample-chip" data-ip="9.9.9.9">Quad9</button>
+          <button class="chip sample-chip" data-ip="github.com">GitHub</button>
+        </div>
+
+        <div id="recentSearches" class="recent-searches-wrapper" style="display: none;">
+          <span class="preset-label"><i class="fa-solid fa-clock-rotate-left"></i> Recents:</span>
+          <div id="recentChips" class="chips-scroll"></div>
+          <button id="clearHistoryBtn" class="btn-text-sm" title="Clear Search History">Clear</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Error Alert Toast Container -->
+    <div id="errorToast" class="alert alert-error" style="display: none;">
+      <i class="fa-solid fa-triangle-exclamation"></i>
+      <span id="errorMessage">Unable to fetch IP details. Please check the entered address.</span>
+      <button class="alert-close" onclick="document.getElementById('errorToast').style.display='none'"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+
+    <!-- Quick Highlights Bar -->
+    <section id="summaryBanner" class="summary-banner card-glass">
+      <div class="summary-item">
+        <span class="summary-label">Target IP Address</span>
+        <div class="summary-value-wrapper">
+          <span id="sumIp" class="summary-value skeleton-text">--.--.--.--</span>
+          <span id="sumIpVersion" class="badge badge-sm">IPv4</span>
+        </div>
+      </div>
+      <div class="summary-divider"></div>
+      <div class="summary-item">
+        <span class="summary-label">Location</span>
+        <span id="sumLocation" class="summary-value skeleton-text">--, --</span>
+      </div>
+      <div class="summary-divider"></div>
+      <div class="summary-item">
+        <span class="summary-label">ISP / Carrier</span>
+        <span id="sumIsp" class="summary-value skeleton-text">--------</span>
+      </div>
+      <div class="summary-divider"></div>
+      <div class="summary-item">
+        <span class="summary-label">Local Timezone</span>
+        <div class="summary-value-wrapper">
+          <span id="sumTimezone" class="summary-value skeleton-text">UTC +00:00</span>
+          <span id="liveClock" class="clock-badge"><i class="fa-regular fa-clock"></i> --:--:--</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Interactive Grid Layout -->
+    <div class="main-grid">
+
+      <!-- Left Column: Detailed Metrics Cards -->
+      <div class="details-column">
+
+        <!-- Security & Threat Assessment -->
+        <div class="card card-glass">
+          <div class="card-header">
+            <h2 class="card-title"><i class="fa-solid fa-shield-halved text-primary"></i> Security & Threat Analysis</h2>
+            <span id="riskScoreBadge" class="badge badge-success"><i class="fa-solid fa-check-double"></i> Clean / Low Risk</span>
+          </div>
+          <div class="card-body">
+            <div class="security-grid">
+              <div class="security-item">
+                <div class="sec-icon"><i class="fa-solid fa-user-shield"></i></div>
+                <div class="sec-info">
+                  <span class="sec-label">Proxy Detection</span>
+                  <span id="secProxy" class="sec-value">False</span>
+                </div>
+              </div>
+              <div class="security-item">
+                <div class="sec-icon"><i class="fa-solid fa-network-wired"></i></div>
+                <div class="sec-info">
+                  <span class="sec-label">VPN Connection</span>
+                  <span id="secVpn" class="sec-value">False</span>
+                </div>
+              </div>
+              <div class="security-item">
+                <div class="sec-icon"><i class="fa-solid fa-mask"></i></div>
+                <div class="sec-info">
+                  <span class="sec-label">Tor Exit Node</span>
+                  <span id="secTor" class="sec-value">False</span>
+                </div>
+              </div>
+              <div class="security-item">
+                <div class="sec-icon"><i class="fa-solid fa-server"></i></div>
+                <div class="sec-info">
+                  <span class="sec-label">Datacenter / Hosting</span>
+                  <span id="secDatacenter" class="sec-value">False</span>
+                </div>
+              </div>
+              <div class="security-item">
+                <div class="sec-icon"><i class="fa-solid fa-robot"></i></div>
+                <div class="sec-info">
+                  <span class="sec-label">Crawler / Bot</span>
+                  <span id="secBot" class="sec-value">False</span>
+                </div>
+              </div>
+              <div class="security-item">
+                <div class="sec-icon"><i class="fa-solid fa-ban"></i></div>
+                <div class="sec-info">
+                  <span class="sec-label">Abuse / Blacklist</span>
+                  <span id="secAbuse" class="sec-value">Clean</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Network & ASN Intelligence -->
+        <div class="card card-glass">
+          <div class="card-header">
+            <h2 class="card-title"><i class="fa-solid fa-diagram-project text-secondary"></i> Network & Autonomous System</h2>
+          </div>
+          <div class="card-body">
+            <ul class="info-list">
+              <li>
+                <span class="info-label"><i class="fa-solid fa-building-ngo"></i> ISP Name</span>
+                <span id="netIsp" class="info-value">--</span>
+              </li>
+              <li>
+                <span class="info-label"><i class="fa-solid fa-sitemap"></i> Organization</span>
+                <span id="netOrg" class="info-value">--</span>
+              </li>
+              <li>
+                <span class="info-label"><i class="fa-solid fa-hashtag"></i> Autonomous System (ASN)</span>
+                <span id="netAsn" class="info-value code-font">--</span>
+              </li>
+              <li>
+                <span class="info-label"><i class="fa-solid fa-file-contract"></i> AS Name</span>
+                <span id="netAsName" class="info-value">--</span>
+              </li>
+              <li>
+                <span class="info-label"><i class="fa-solid fa-globe"></i> AS Domain</span>
+                <span id="netAsDomain" class="info-value">--</span>
+              </li>
+              <li>
+                <span class="info-label"><i class="fa-solid fa-tower-cell"></i> Connection Type</span>
+                <span id="netConnType" class="info-value">--</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Geolocation & Demographics -->
+        <div class="card card-glass">
+          <div class="card-header">
+            <h2 class="card-title"><i class="fa-solid fa-location-dot text-accent"></i> Location & Geography</h2>
+            <button id="copyCoordsBtn" class="btn-text-sm" title="Copy Coordinates">
+              <i class="fa-regular fa-copy"></i> Coords
+            </button>
+          </div>
+          <div class="card-body">
+            <ul class="info-list">
+              <li>
+                <span class="info-label"><i class="fa-solid fa-city"></i> City</span>
+                <span id="geoCity" class="info-value">--</span>
+              </li>
+              <li>
+                <span class="info-label"><i class="fa-solid fa-map"></i> Region / State</span>
+                <span id="geoRegion" class="info-value">--</span>
+              </li>
+              <li>
+                <span class="info-label"><i class="fa-solid fa-flag"></i> Country</span>
+                <span class="info-value inline-flag">
+                  <img id="geoFlagImg" class="country-flag" src="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg'/>" alt="Flag" style="display:none;" />
+                  <span id="geoCountry">--</span>
+                  <span id="geoCountryCode" class="badge badge-sm">--</span>
+                </span>
+              </li>
+              <li>
+                <span class="info-label"><i class="fa-solid fa-landmark"></i> Capital City</span>
+                <span id="geoCapital" class="info-value">--</span>
+              </li>
+              <li>
+                <span class="info-label"><i class="fa-solid fa-mail-bulk"></i> Postal Code</span>
+                <span id="geoPostal" class="info-value code-font">--</span>
+              </li>
+              <li>
+                <span class="info-label"><i class="fa-solid fa-compass"></i> Coordinates</span>
+                <span id="geoCoords" class="info-value code-font">0.0000, 0.0000</span>
+              </li>
+              <li>
+                <span class="info-label"><i class="fa-solid fa-phone"></i> Calling Code</span>
+                <span id="geoCallingCode" class="info-value">--</span>
+              </li>
+              <li>
+                <span class="info-label"><i class="fa-solid fa-coins"></i> Currency</span>
+                <span id="geoCurrency" class="info-value">--</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Right Column: Interactive Map & Tools -->
+      <div class="map-column">
+
+        <!-- Leaflet Map Card -->
+        <div class="card card-glass map-card">
+          <div class="card-header map-header">
+            <h2 class="card-title"><i class="fa-solid fa-map-location-dot text-success"></i> Spatial Map Tracking</h2>
+            <div class="map-actions">
+              <select id="mapStyleSelect" class="map-style-select" title="Change Map Style">
+                <option value="dark">Dark Theme Map</option>
+                <option value="streets">Street View</option>
+                <option value="satellite">Satellite Imagery</option>
+              </select>
+              <button id="recenterMapBtn" class="btn btn-icon-sm" title="Recenter Map">
+                <i class="fa-solid fa-location-crosshairs"></i>
+              </button>
+            </div>
+          </div>
+          <div class="card-body map-body">
+            <div id="map" class="leaflet-map-container"></div>
+            <div class="map-overlay-badge">
+              <i class="fa-solid fa-crosshairs pulse-icon"></i>
+              <span id="mapOverlayLocation">Target Location</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Export & Utility Actions Card -->
+        <div class="card card-glass">
+          <div class="card-header">
+            <h2 class="card-title"><i class="fa-solid fa-sliders text-warning"></i> Report & Tools</h2>
+          </div>
+          <div class="card-body">
+            <div class="tools-grid">
+              <button id="copyAllJsonBtn" class="btn btn-outline">
+                <i class="fa-regular fa-copy"></i>
+                <span>Copy JSON</span>
+              </button>
+              <button id="copySummaryBtn" class="btn btn-outline">
+                <i class="fa-solid fa-font"></i>
+                <span>Copy Text Report</span>
+              </button>
+              <button id="downloadJsonBtn" class="btn btn-outline">
+                <i class="fa-solid fa-file-code"></i>
+                <span>Export JSON</span>
+              </button>
+              <button id="downloadCsvBtn" class="btn btn-outline">
+                <i class="fa-solid fa-file-csv"></i>
+                <span>Export CSV</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Raw JSON Inspector Drawer / Card -->
+        <div class="card card-glass">
+          <div class="card-header">
+            <h2 class="card-title"><i class="fa-solid fa-code"></i> Raw Payload Viewer</h2>
+            <button id="toggleJsonBtn" class="btn-text-sm">Expand</button>
+          </div>
+          <div id="jsonViewerContainer" class="card-body json-body" style="display: none;">
+            <pre><code id="rawJsonOutput" class="json-code">{}</code></pre>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="footer-container">
+      <div class="footer-info">
+        <p><strong>IP Pulse</strong> — Real-time Network Intelligence & IP Geolocation Platform</p>
+        <p class="footer-sub">Powered by standard HTTPS Geolocation APIs & Leaflet Spatial Engine.</p>
+      </div>
+      <div class="footer-links">
+        <span class="status-indicator"><span class="status-dot"></span> System Live</span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Leaflet Map JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin="anonymous"></script>
+
+  <!-- Application JS -->
+  <script src="app.js"></script>
 </body>
 </html>
